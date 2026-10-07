@@ -3,7 +3,7 @@
 #include <vector>
 
 struct token_state {
-    unsigned char in_double_quotes : 1 {false}; //Might cause errors later with line grouping with single quotes
+    unsigned char in_double_quotes : 1 {false}; 
     unsigned char in_single_quotes : 1 {false};
     unsigned char in_slash         : 1 {false};
 };
@@ -77,6 +77,8 @@ int parse_input(std::string_view line) {
         std::cout << "ERR unterminated quote";
         return 1;
     }
+
+    // Definitely a more memory efficient way of doing this is possible
     std::string ending{};
     for(auto i : list) {
         std::string result(i.begin(), i.end());
