@@ -1,6 +1,5 @@
 #include <string>
 #include <iostream>
-#include <bit>
 #include <vector>
 
 struct token_state {
@@ -9,62 +8,86 @@ struct token_state {
     unsigned char in_slash         : 1 {false};
 };
 
-struct token {
-    std::string symbol{};
-};
-
-std::ostream& operator<<(std::ostream& out, std::vector<token> tok) {
-    for(token i : tok) {
-        std::cout << i.symbol << '\n';
-    }
-    return out;
-}
-
-bool has_flag(token_state &state) {
-    auto i = std::bit_cast<char>(state);
-    if(i == true) {
-        return true;
-    }
-    return false;
-}
-
 int parse_input(std::string_view line) {
     token_state state{};
-    int token_count{};
-    size_t pos{0};
-    std::vector<token> symbol_list{};
+    std::vector<char> temp_token{};
+    std::vector<std::vector<char>> list{};
 
     for(size_t i{1}; i < line.length(); ++i) {
+        if(state.in_double_quotes) {
+            if(line[i] == '\\') {
+                temp_token.push_back(line[i + 1]);
+                i++; 
+                continue; 
+            }
+            if(line[i] == '"') {
+                state.in_double_quotes = false;
+                temp_token.push_back(']');
+                list.push_back(temp_token);
+                temp_token.erase(temp_token.begin(), temp_token.end());
+                continue;
+            }
+            temp_token.push_back(line[i]);
+            continue;
+        }
+        if(state.in_single_quotes) {
+            if(line[i] == '\'') {
+                state.in_single_quotes = false;
+                temp_token.push_back(']');
+                list.push_back(temp_token);
+                temp_token.erase(temp_token.begin(), temp_token.end());
+                continue;
+            }
+            temp_token.push_back(line[i]);
+            continue;
+        }
+        if(state.in_slash) {
+            temp_token.push_back(line[i]);
+            state.in_slash = false;
+            continue;
+        } 
         switch(line[i]) {
             case '"':
+                temp_token.push_back('[');
                 state.in_double_quotes = true;
                 break;
-            case '\'': //State priority mess maybe
-                if(state.in_single_quotes == true) {
-                    symbol_list.emplace_back( token{ .symbol{line.substr(pos, i)} } );
-                    state.in_single_quotes = false;
-                    break;
-                }
+            case '\'':
+                temp_token.push_back('['); 
                 state.in_single_quotes = true;
-                pos = i;
                 break;
-            case '\\':
+            case '\\': 
                 state.in_slash = true;
                 break;
             case ' ':
-                if(!has_flag(state) && line[i-1] != ' ') { //Possible out of range array index at i=0
-                    token_count++;
-                    if(pos < i) { symbol_list.emplace_back(
-                                    token{ .symbol{ line.substr(pos + 1, i - pos - 1) }}
-                                    ); 
-                        pos = i; 
-                    }
-                }
+                if(temp_token.empty()) break;
+                temp_token.push_back(']');
+                temp_token.insert(temp_token.begin(), '[');
+
+                list.push_back(temp_token);
+                temp_token.erase(temp_token.begin(), temp_token.end());
+                break;
+            default:
+                temp_token.push_back(line[i]);
+                break;
         }
-    }        
-    std::cout << "symbol_list: \n";
-    std::cout << symbol_list;
-    return token_count;
+    }
+
+    //Leftover state
+    if(state.in_double_quotes || state.in_single_quotes) {
+        std::cout << "ERR unterminated quote";
+        return 1;
+    }
+    std::string ending{};
+    for(auto i : list) {
+        std::string result(i.begin(), i.end());
+        result.append(" ");
+        ending.append(result);
+    }
+    if(ending.back() == ' ') {
+        ending.pop_back();
+    }
+    std::cout << ending;
+    return list.size();
 }
 
 int main() {
@@ -72,7 +95,7 @@ int main() {
     while (std::getline(std::cin, line)) {
         line.append(" ");
         line.insert(0, " ");
-        std::cout << parse_input(line) << '\n';
+        parse_input(line); 
         if (line.empty()) continue;
     }
 }
