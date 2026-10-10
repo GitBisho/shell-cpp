@@ -7,7 +7,7 @@
 
 //Aided with Claude
 //:Find best case match
-int check_operator(std::string_view line, size_t idx, size_t& len_out) {
+int check_operator(std::string_view line, size_t idx, size_t& len_out, bool& is_redirect) {
     len_out = 0;
     int best_idx{-1};
 
@@ -19,6 +19,10 @@ int check_operator(std::string_view line, size_t idx, size_t& len_out) {
             len_out = elem.length(); 
         } 
     }    
+    if(best_idx >= 0 && (operator_arr[best_idx] == "<" || operator_arr[best_idx] == ">")) {
+        is_redirect = true;
+    }
+
 
     return best_idx;
 }
@@ -36,6 +40,7 @@ token_list tokenize_input(std::string_view line) {
     std::vector<std::string> list{};
     
     auto end_token = [&temp_token, &list]() {
+        if(temp_token.empty()) { return; }
         temp_token.insert(temp_token.begin(), '[');
         temp_token.push_back(']');
         list.push_back(temp_token);
@@ -75,6 +80,13 @@ token_list tokenize_input(std::string_view line) {
             state.in_slash = false;
             continue;
         } 
+        if(state.in_comment) {
+            if(line[i] == '\n') { 
+                state.in_comment = false;
+            }
+            continue; 
+        }
+
         switch(line[i]) {
             case '"':
                 state.in_double_quotes = true;
@@ -85,18 +97,27 @@ token_list tokenize_input(std::string_view line) {
             case '\\': 
                 state.in_slash = true;
                 break;
+            case '#':
+                state.in_comment = true;
+                break;
             case ' ':
-                if(temp_token.empty()) break;
-
                 end_token();
                 break; 
             default:
                 //Out var for checking best case len
                 size_t len_out{};
-                int op_idx = check_operator(line, i, len_out); 
+                bool is_redirect{false};
+                int op_idx = check_operator(line, i, len_out, is_redirect); 
                 
                 if(op_idx != -1) {
-                    end_token();
+                    if(is_redirect) {
+                        temp_token.insert(temp_token.begin(), '{');
+                        temp_token.push_back('}');
+
+                        list.push_back(temp_token);
+                        temp_token.erase(temp_token.begin(), temp_token.end());
+                    }
+                    else { end_token(); }
                     std::string_view operator_view = operator_arr[op_idx];
                     for(size_t op_length{}; op_length < len_out; op_length++) {
                         temp_token.push_back(operator_view[op_length]);

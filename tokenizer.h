@@ -11,6 +11,7 @@ struct token_state {
     unsigned char in_double_quotes : 1 {false}; 
     unsigned char in_single_quotes : 1 {false};
     unsigned char in_slash         : 1 {false};
+    unsigned char in_comment       : 1 {false};
 };
 
 constexpr static std::array<std::string, 12> operator_arr { "&&", "||", ">>", "<<", ">&", 
