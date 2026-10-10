@@ -1,2 +1,2 @@
 all:
-	g++ -o test main.cpp -Wall -Werror -Wextra -std=c++23
+	g++ -o test main.cpp tokenizer.cpp -Wall -Werror -Wextra -std=c++23
