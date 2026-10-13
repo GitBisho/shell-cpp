@@ -40,16 +40,10 @@ token_list tokenize_input(std::string_view line) {
     std::string temp_token{};
     std::vector<std::string> list{};
     
-    auto end_token = [&temp_token, &list](bool is_operator = false) {
+    auto end_token = [&temp_token, &list]() {
         if(temp_token.empty()) { return; }
-        if(is_operator) { 
-            temp_token.insert(temp_token.begin(), '(');
-            temp_token.push_back(')'); 
-        }
-        else {
-            temp_token.insert(temp_token.begin(), '[');
-            temp_token.push_back(']'); 
-        }
+        temp_token.insert(temp_token.begin(), '[');
+        temp_token.push_back(']'); 
         list.push_back(temp_token);
         temp_token.erase(temp_token.begin(), temp_token.end());
     };
@@ -133,7 +127,11 @@ token_list tokenize_input(std::string_view line) {
                     for(size_t op_length{}; op_length < len_out; op_length++) {
                         temp_token.push_back(operator_view[op_length]);
                     }
-                    end_token(true);
+                    //End operator token
+                    temp_token.insert(temp_token.begin(), '(');
+                    temp_token.push_back(')');
+                    list.push_back(temp_token);
+                    temp_token.erase(temp_token.begin(), temp_token.end());
                     i += len_out - 1;
                     continue;
                 }
