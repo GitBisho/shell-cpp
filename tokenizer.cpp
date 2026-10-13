@@ -106,6 +106,7 @@ token_list tokenize_input(std::string_view line) {
                 state.in_comment = true;
                 break;
             case ' ':
+            case '\t':
                 end_token();
                 break; 
             default:
