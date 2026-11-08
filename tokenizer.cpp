@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <optional>
-
+#include <cctype>
 #include "tokenizer.h"
 
 
@@ -28,19 +28,28 @@ int check_operator(std::string_view line, size_t idx, size_t& len_out, bool& is_
     return best_idx;
 }
 
-void print_token_list(std::vector<std::string>& list) {
-    for(std::string token : list) {
-        std::cout << token << ' ';
-    }    
-    std::cout << '\n';
+void print_token_list(token_list& list) {
+    if(list.empty()) return;
+    
+    int counter{1};
+    for(std::vector<std::string> pipeline : list) {
+        std::cout << counter << ": ";
+        counter++;
+        for(std::string token : pipeline) {
+            std::cout << token << ' ';
+        }    
+        std::cout << '\n';
+    }
 }
 
-token_list tokenize_input(std::string_view line) {
+std::optional<token_list> tokenize_input(std::string_view line) {
     token_state state{};
     std::string temp_token{};
-    std::vector<std::string> list{};
-    
-    auto end_token = [&temp_token, &list]() {
+    pipeline_list list{};
+    token_list out{};
+    bool new_pipe{false};
+
+    auto end_token = [&]() {
         if(temp_token.empty()) { return; }
         temp_token.insert(temp_token.begin(), '[');
         temp_token.push_back(']'); 
@@ -85,6 +94,16 @@ token_list tokenize_input(std::string_view line) {
             }
             continue; 
         }
+        if(state.in_pipe) {
+            if(list.empty() && temp_token.empty()) { std::cout << "ERR syntax error: empty command in pipeline\n"; return {}; }
+            end_token();
+            out.push_back(list);
+            list.erase(list.begin(), list.end()); 
+            new_pipe = true;
+            state.in_pipe = false;
+            if(!std::isspace(line[i])) temp_token.push_back(line[i]);  
+            continue;
+        }
 
         switch(line[i]) {
             case '"':
@@ -104,6 +123,7 @@ token_list tokenize_input(std::string_view line) {
                 end_token();
                 break; 
             default:
+                new_pipe = false; //Know we are out of the pipe
                 //Out var for checking best case len
                 size_t len_out{};
                 bool is_redirect{false};
@@ -121,6 +141,10 @@ token_list tokenize_input(std::string_view line) {
                         else {
                            end_token(); 
                         } 
+                    }
+                    else if(op_idx == static_cast<int>(PIPE)) {
+                        state.in_pipe = true;
+                        continue;
                     }
                     else { end_token(); } 
                     std::string_view operator_view = operator_arr[op_idx];
@@ -149,8 +173,12 @@ token_list tokenize_input(std::string_view line) {
         std::cout << "ERR unterminated quote";
         return std::nullopt;
     }
-    
-    print_token_list(list);
 
-    return list; //NVRO 
+    out.push_back(list);
+    if(new_pipe || state.in_pipe) {std::cout << "ERR syntax error: empty command in pipeline\n"; return {}; }
+
+    print_token_list(out);
+
+    return out; //NVRO 
 }
+

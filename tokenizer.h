@@ -1,17 +1,18 @@
 #pragma once
-
+#include <optional>
 #include <array>
 #include <string>
-#include <optional>
 #include <vector>
 
-using token_list = std::optional<std::vector<std::string>>;
+using pipeline_list = std::vector<std::string>;
+using token_list = std::vector<pipeline_list>; 
 
 struct token_state {
     unsigned char in_double_quotes : 1 {false}; 
     unsigned char in_single_quotes : 1 {false};
     unsigned char in_slash         : 1 {false};
     unsigned char in_comment       : 1 {false};
+    unsigned char in_pipe          : 1 {false};
 };
 
 constexpr static std::array<std::string, 12> operator_arr { "&&", "||", ">>", "<<", ">&", 
@@ -31,6 +32,5 @@ enum e_operator_arr : size_t {
     WEIRD,
 };
 
-
-token_list tokenize_input(std::string_view line);
+std::optional<token_list> tokenize_input(std::string_view line);
 void print_operators(e_operator_arr idx);
