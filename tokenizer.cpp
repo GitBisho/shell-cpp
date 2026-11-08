@@ -30,7 +30,9 @@ int check_operator(std::string_view line, size_t idx, size_t& len_out, bool& is_
 
 void print_token_list(token_list& list) {
     if(list.empty()) return;
-    
+
+    std::cout << "PIPELINE " << list.size() << '\n';
+
     int counter{1};
     for(std::vector<std::string> pipeline : list) {
         std::cout << counter << ": ";
