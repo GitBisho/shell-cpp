@@ -49,6 +49,7 @@ std::optional<token_list> tokenize_input(std::string_view line) {
     std::string temp_token{};
     pipeline_list list{};
     token_list out{};
+    std::vector<op_stat> operator_list{};
     bool new_pipe{false};
 
     auto end_token = [&]() {
@@ -125,6 +126,15 @@ std::optional<token_list> tokenize_input(std::string_view line) {
                 end_token();
                 break; 
             default:
+/*
+
+Input:  cat <in.txt >>out.txt 2>&1
+Output: argv: [cat]
+        redir fd=0 op=< target=in.txt
+        redir fd=1 op=>> target=out.txt
+        redir fd=2 op=>& target=1
+
+*/
                 new_pipe = false; //Know we are out of the pipe
                 //Out var for checking best case len
                 size_t len_out{};
@@ -134,14 +144,11 @@ std::optional<token_list> tokenize_input(std::string_view line) {
                     if(is_redirect) {
                         char* fd{};
                         long _ = strtol(temp_token.data(), &fd, 10); 
-                        if(!*fd) {
-                            temp_token.insert(temp_token.begin(), '{');
-                            temp_token.push_back('}'); //FD token
-                            list.push_back(temp_token);
-                            temp_token.erase(temp_token.begin(), temp_token.end());
+                        if(!*fd) { //If no fd
+                            //Handle next target 
                         }
-                        else {
-                           end_token(); 
+                        else { //If fd
+                        
                         } 
                     }
                     else if(op_idx == static_cast<int>(PIPE)) {
